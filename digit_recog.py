@@ -20,6 +20,17 @@ import tensorflow as tf
 
 FLAGS = None
 
+prediction_filename = "prediction.txt"
+
+correct_filename = "annotation_correct.txt"
+
+do_restore = 1  # do we want to run train again or just restore, 0 or 1
+
+filter_threshold = 0.04515  # a threshold for watershed, should be a number between 0 and 1
+
+dilation_radius = 3  # to make the input image thicker, should be an int greater than zero
+
+
 
 def dilate(img, radius):
     from skimage.morphology import square
@@ -45,8 +56,10 @@ def filter_zero_or_one(img_arr):
     [vert, hori] = img_arr.shape
     for i in range(vert):
         for j in range(hori):
-            if img_arr[i, j] > 1:
+            if img_arr[i, j] > filter_threshold:
                 img_arr[i, j] = 1
+            else:
+                img_arr[i, j] = 0
     return img_arr
 
 
@@ -70,7 +83,7 @@ def max_pool_2x2(x):
 
 
 def main(_):
-    do_restore = 1
+
     files = [f for f in listdir('.')]  # if os.path.isfile(f)
     input_imgs = numpy.array([])
 
@@ -81,7 +94,7 @@ def main(_):
         if f.endswith(".png") and (not f.startswith("copy")):
             arr = make_square_img(skimage.io.imread(f, as_grey=True))
             f_new = 'copy'+f
-            arr = dilate(arr, 3)
+            arr = dilate(arr, dilation_radius)
             resized_arr = filter_zero_or_one(skimage.transform.resize(arr, (28, 28)))
             #print(resized_arr)
             skimage.io.imsave(f_new, resized_arr)
@@ -101,7 +114,7 @@ def main(_):
             ii += 1
             print("\n")
     print(filenames)
-    input_result = numpy.zeros((len(filenames), 10))
+
 
 
 
@@ -177,7 +190,7 @@ def main(_):
     test = {}
     correct = 0
     # read in annotation (test)
-    with open("annotation_correct.txt", "r") as annotations:
+    with open(correct_filename, "r") as annotations:
         for line in annotations:
             image, label = line.split()
             test[image] = label
@@ -187,7 +200,7 @@ def main(_):
     print(filenames)
     print(len(p))
     print(len(filenames))
-    f = open('annotation.txt', 'w')
+    f = open(prediction_filename, 'w')
     for i in range(len(filenames)):
         s = "%s\t%i\n" % (filenames[i], (p[i]))
         f.write(s)
@@ -198,7 +211,7 @@ def main(_):
         print("\n")
     f.close()
 
-    with open("annotation.txt", "r") as predictions:
+    with open(prediction_filename, "r") as predictions:
         for line in predictions:
             image, label = line.split()
             if label == test[image]:
