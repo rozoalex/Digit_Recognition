@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
+from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow as tf
 import argparse
 import sys
 from os import listdir
@@ -13,11 +14,8 @@ import skimage.util
 import numpy
 import PIL
 numpy.set_printoptions(threshold=numpy.nan)
-
-from tensorflow.examples.tutorials.mnist import input_data
-
-import tensorflow as tf
-
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 FLAGS = None
 
 prediction_filename = "prediction.txt"
@@ -26,9 +24,12 @@ correct_filename = "annotation_correct.txt"
 
 do_restore = 1  # do we want to run train again or just restore, 0 or 1
 
-filter_threshold = 0.04515  # a threshold for watershed, should be a number between 0 and 1
+filter_threshold = 0.145  # a threshold for watershed, should be a number between 0 and 1 # 0.04515
 
-dilation_radius = 3  # to make the input image thicker, should be an int greater than zero
+do_watershed = 0  # do we want to do watershed, 0 or 1
+
+dilation_radius = 7  # to make the input image thicker, should be an int greater than zero
+
 
 
 
@@ -82,6 +83,8 @@ def max_pool_2x2(x):
                         strides=[1, 2, 2, 1], padding='SAME')
 
 
+
+
 def main(_):
 
     files = [f for f in listdir('.')]  # if os.path.isfile(f)
@@ -95,21 +98,19 @@ def main(_):
             arr = make_square_img(skimage.io.imread(f, as_grey=True))
             f_new = 'copy'+f
             arr = dilate(arr, dilation_radius)
-            resized_arr = filter_zero_or_one(skimage.transform.resize(arr, (28, 28)))
-            #print(resized_arr)
+            if do_watershed == 1:
+                resized_arr = filter_zero_or_one(skimage.transform.resize(arr, (28, 28)))
+            else:
+                resized_arr = skimage.transform.resize(arr, (28, 28))
             skimage.io.imsave(f_new, resized_arr)
             print("Image detected, name: " + f)
             print(arr.shape)
             print(resized_arr.shape)
             filenames.append(f)
             if input_imgs.size == 0:
-
                 input_imgs = numpy.reshape(resized_arr, (1, 784))
-                #input_imgs = resized_arr.flatten('C')
             else:
                 input_imgs = numpy.vstack((input_imgs, numpy.reshape(resized_arr, (1, 784))))
-                #input_imgs = numpy.vstack((input_imgs, resized_arr.flatten('C')))
-            # print(resized_arr.flatten().shape)
             print(input_imgs.shape)
             ii += 1
             print("\n")
@@ -200,17 +201,30 @@ def main(_):
     print(filenames)
     print(len(p))
     print(len(filenames))
-    f = open(prediction_filename, 'w')
+    write_file = open(prediction_filename, 'w')
+    ploting = plt.figure(num=1)
+    vert_num = 4
+    hori_num = 5
+    plt_size = vert_num * hori_num
     for i in range(len(filenames)):
-        s = "%s\t%i\n" % (filenames[i], (p[i]))
-        f.write(s)
-        #if test[filenames[i]] == p[i]:
-        #   correct += 1
+        write_string = "%s\t%i\n" % (filenames[i], (p[i]))
+        write_file.write(write_string)
+        if ((i + 1) % plt_size) == 1 and i + 1 != 1:
+            ploting.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+            ploting = plt.figure(((i + 1) / plt_size))
+        pos = (i % plt_size) + 1
+        print(pos)
+        a = ploting.add_subplot(vert_num, hori_num, pos)  # this line outputs images on top of each other
+        a.set_title(write_string)
+        a.axes.get_xaxis().set_visible(False)
+        a.axes.get_yaxis().set_visible(False)
+        plt.imshow(skimage.io.imread('copy'+filenames[i], as_grey=True), cmap=cm.Greys_r)
         print(p[i])
         print(filenames[i])
         print("\n")
-    f.close()
-
+    write_file.close()
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+    plt.show()
     with open(prediction_filename, "r") as predictions:
         for line in predictions:
             image, label = line.split()
