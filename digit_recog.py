@@ -42,13 +42,13 @@ def dilate(img, radius):
 def make_square_img(img_arr):
     (vertical_pixel, horizontal_pixel) = img_arr.shape
     if vertical_pixel > horizontal_pixel:
-        vertical_padding = int(round(vertical_pixel*0.05))
-        horizontal_padding = int(round((vertical_pixel*1.1 - horizontal_pixel) / 2))
+        vertical_padding = int(round(vertical_pixel*0.15))
+        horizontal_padding = int(round((vertical_pixel*1.3 - horizontal_pixel) / 2))
         padding = ((vertical_padding, vertical_padding), (horizontal_padding, horizontal_padding))
         return skimage.util.pad(img_arr, padding, 'constant', constant_values=0)
     else:
-        horizontal_padding = int(round(horizontal_pixel*0.05))
-        vertical_padding = int(round((horizontal_pixel*1.1 - vertical_pixel) / 2))
+        horizontal_padding = int(round(horizontal_pixel*0.15))
+        vertical_padding = int(round((horizontal_pixel*1.3 - vertical_pixel) / 2))
         padding = ((vertical_padding, vertical_padding), (horizontal_padding, horizontal_padding))
         return skimage.util.pad(img_arr, padding, 'constant', constant_values=0)
 
@@ -182,7 +182,8 @@ def main(_):
             train_step.run(feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})
             if i % 100 == 0:
                 print("step %d, training accuracy %g" % (i, train_accuracy))
-        save_path = saver.save(sess, 'model')
+        #save_path = saver.save(sess, 'model') #for OS X  #seems to be a bad implementation from tensorflow
+        save_path = saver.save(sess, './model')  #for Win
         print("Model saved in file: %s" % save_path)
     # Test trained model
     #print("test accuracy %g" % accuracy.eval(feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
